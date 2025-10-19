@@ -25,3 +25,11 @@ Request {
     approvalCount: uint
 }
 ```
+
+## Creating a Factory to manage deployments of new instances of a campaign
+### Variables
+- deployedCampaigns --> address --> address of all deployed campaign
+
+### Functions
+- createCampaign
+- getDeployedCampaigns

@@ -1,6 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+contract CampaignFactory {
+    address[] public deployedCampaigns;
+
+    function createCampaign(uint8 minimum) public {
+        address newCampaign = address(new Campaign(minimum, msg.sender));
+        deployedCampaigns.push(newCampaign);
+    }
+
+    function getDeployedCampaigns() public view returns (address[] memory) {
+        return deployedCampaigns;
+    }
+}
 
 contract Campaign {
 
@@ -25,8 +37,8 @@ contract Campaign {
         _;
     }
 
-    constructor(uint8 minimum) {
-        manager = msg.sender;
+    constructor(uint8 minimum, address creator_address) {
+        manager = creator_address;
         minimumContribution = minimum;
     } 
 
@@ -53,7 +65,7 @@ contract Campaign {
         request.approvalCount++;
     }
 
-    function finalizeRequest(uint64 request_index) public payable restricted{
+    function finalizeRequest(uint64 request_index) public restricted{
         Request storage request = requests[request_index];
 
         require(request.approvalCount > approversCount / 2);
@@ -62,10 +74,5 @@ contract Campaign {
         vendor.transfer(request.value);
         request.complete = true;
     }
-
-
-
-
-
-
 }
+
