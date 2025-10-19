@@ -6,15 +6,18 @@ contract Campaign {
 
     struct Request {
         string description; // Describes why the request is being created
-        uint64 value; // Amount of money in Wei that the manager wants to send to the vendor
+        uint128 value; // Amount of money in Wei that the manager wants to send to the vendor
         address recipient; // Address that the money will be sent to. See this a the vendor
         bool complete; // True if the request has already been complete
+        uint64 approvalCount; // Track numbers of approvals
+        mapping(address => bool) approvals; // Returns true if the approval already voted
     }
 
     address public manager;
-    address payable[] public approvers;
+    mapping(address => bool) public approvers; // We use mapping to avoid for loop search
     uint8 public minimumContribution;
     Request[] public requests;
+    uint64 public approversCount;
 
 
     modifier restricted() {
@@ -29,20 +32,36 @@ contract Campaign {
 
     function contribute() payable public {
         require(msg.value > minimumContribution);
-        approvers.push(payable(msg.sender));
+        approvers[msg.sender] = true;
+        approversCount++;
     }
 
-    function createRequest(string memory _description, uint64 _value, address _recipient) public restricted{
-        Request memory request = Request({
-            description: _description,
-            value: _value,
-            recipient: _recipient,
-            complete: false
-        });
-        requests.push(request);
+    function createRequest(string memory _description, uint128 _value, address _recipient) public restricted{
+        Request storage request = requests.push();
+        request.description = _description;
+        request.value = _value;
+        request.recipient = _recipient;
+        request.complete = false;
+        request.approvalCount=  0;
     }
 
-    // function approveRequest
+    function approveRequest(uint64 request_index)  public {
+        require(approvers[msg.sender]);
+        Request storage request = requests[request_index];
+        require(!request.approvals[msg.sender]);
+        request.approvals[msg.sender] = true;
+        request.approvalCount++;
+    }
+
+    function finalizeRequest(uint64 request_index) public payable restricted{
+        Request storage request = requests[request_index];
+
+        require(request.approvalCount > approversCount / 2);
+        require(!request.complete);
+        address payable vendor = payable(request.recipient);
+        vendor.transfer(request.value);
+        request.complete = true;
+    }
 
 
 
